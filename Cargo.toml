@@ -5,9 +5,14 @@ edition = "2021"
 
 [dependencies]
 futures = "0.3.30"
-reqwest = { version = "0.12.5", features = ["blocking", "rustls-tls", "json", "native-tls-vendored"]}
+futures-core = "0.3.30"
+regex = "1.10.6"
+reqwest = { version = "0.12.5", features = ["blocking", "rustls-tls", "json", "native-tls-vendored", "cookies", "gzip"]}
 rustls = "0.23.12"
-serde = { version = "1.0.204", features = ["derive"]}
+serde = { version = "1.0.204", features = ["derive"] }
+serde_json = "1.0.125"
 tokio = { version = "1.39.2", features = ["full"] }
+dotenv = "0.15"  # Optional: if you want to use dotenv to load environment variables
+text_io = "0.1.12"
 
 
