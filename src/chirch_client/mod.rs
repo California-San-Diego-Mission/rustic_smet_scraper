@@ -1,6 +1,5 @@
 use reqwest::Client;
 use serde_json::json;
-use text_io::read;
 use crate::string_extraction::{extract_state_handle};
 use crate::response_handling::{unwrap_response_body_from_response, response_status_is_ok_from_response, display_response_body_and_crash_from_response};
 use crate::unicode_decoding::decode_unicode_escape;
@@ -9,18 +8,20 @@ use rpassword::read_password;
 pub async fn login_to_ref_manager(username: &str) -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new();
 
-    let refferal_manager_url = "https://referralmanager.churchofjesuschrist.org";    
+    let _refferal_manager_url = "https://referralmanager.churchofjesuschrist.org";    
     let test_url = "https://id.churchofjesuschrist.org/oauth2/default/v1/authorize?response_type=code&client_id=0oa5b6krts7UNNkID357&redirect_uri=https%3A%2F%2Fwww.churchofjesuschrist.org%2Fservices%2Fplatform%2Fv4%2Flogin&scope=openid+profile&state=https%3A%2F%2Fwww.churchofjesuschrist.org%2Fmy-home%3Flang%3Deng";
 
-    let request_builder = client
+    let mut response = client
         .get(test_url)
-        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36");
+        .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36")
+        .send()
+        .await?;
 
     // Send the request and await the response
-    let response = request_builder.send().await?;
-    let church_site_body = response.text().await?;
+    let mut response_body = unwrap_response_body_from_response(response).await;
 
-    let json_data_vector: Vec<&str> = church_site_body
+
+    let json_data_vector: Vec<&str> = response_body
         .split("\"stateToken\":\"")
         .collect::<Vec<&str>>()[1]
         .split("\",")
@@ -33,7 +34,7 @@ pub async fn login_to_ref_manager(username: &str) -> Result<(), Box<dyn std::err
         "stateToken": state_token
     });
 
-    let mut response = client
+    response = client
         .post("https://id.churchofjesuschrist.org/idp/idx/introspect")
         .header("Content-Type", "application/json")
         .header("Accept", "application/json")
@@ -45,7 +46,7 @@ pub async fn login_to_ref_manager(username: &str) -> Result<(), Box<dyn std::err
         panic!("ChurchHTTPError");
     }
 
-    let mut response_body = unwrap_response_body_from_response(response).await;
+    response_body = unwrap_response_body_from_response(response).await;
     state_token = extract_state_handle(&response_body);
 
     body = json!({

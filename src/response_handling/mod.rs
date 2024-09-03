@@ -33,7 +33,7 @@ pub fn response_status_is_ok_from_response(response: &Response) -> bool {
         
 }
 
-pub async fn display_response_body_and_crash_from_response(response: Response, crash_message: &str) {
+pub async fn display_response_body_and_crash_from_response(response: Response, _crash_message: &str) {
     println!("{}", unwrap_response_body_from_response(response).await);
     // panic!("{}", crash_message);
 }
