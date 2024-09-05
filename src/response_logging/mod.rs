@@ -1,7 +1,7 @@
 use reqwest::{Response};
 
 
-async fn log_response_text_and_return(response: Response) -> String {
+pub async fn log_response_text_and_return(response: Response) -> String {
     println!("Response Status: {}", response.status());
     println!("Response Headers: {:?}", response.headers());
 

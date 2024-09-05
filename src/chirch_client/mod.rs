@@ -1,18 +1,19 @@
 use reqwest::Client;
 use serde_json::json;
+// use crate::response_logging::{log_response_text_and_return};
 use crate::string_extraction::{extract_state_handle};
-use crate::response_handling::{unwrap_response_body_from_response, response_status_is_ok_from_response, display_response_body_and_crash_from_response};
+use crate::response_handling::{unwrap_response_body_from_response, response_status_is_ok_from_response};
 use crate::unicode_decoding::decode_unicode_escape;
 use rpassword::read_password;
 
 pub async fn login_to_ref_manager(username: &str) -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::new();
 
-    let _refferal_manager_url = "https://referralmanager.churchofjesuschrist.org";    
-    let test_url = "https://id.churchofjesuschrist.org/oauth2/default/v1/authorize?response_type=code&client_id=0oa5b6krts7UNNkID357&redirect_uri=https%3A%2F%2Fwww.churchofjesuschrist.org%2Fservices%2Fplatform%2Fv4%2Flogin&scope=openid+profile&state=https%3A%2F%2Fwww.churchofjesuschrist.org%2Fmy-home%3Flang%3Deng";
+    let refferal_manager_url = "https://referralmanager.churchofjesuschrist.org";    
+    let _test_url = "https://id.churchofjesuschrist.org/oauth2/default/v1/authorize?response_type=code&client_id=0oa5b6krts7UNNkID357&redirect_uri=https%3A%2F%2Fwww.churchofjesuschrist.org%2Fservices%2Fplatform%2Fv4%2Flogin&scope=openid+profile&state=https%3A%2F%2Fwww.churchofjesuschrist.org%2Fmy-home%3Flang%3Deng";
 
     let mut response = client
-        .get(test_url)
+        .get(refferal_manager_url)
         .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36")
         .send()
         .await?;
@@ -29,7 +30,7 @@ pub async fn login_to_ref_manager(username: &str) -> Result<(), Box<dyn std::err
     let json_data = String::from(json_data_vector[0]);
     let encoded_bytes = json_data.as_bytes();
     let mut state_token = decode_unicode_escape(encoded_bytes);
-    
+
     let mut body = json!({
         "stateToken": state_token
     });
@@ -47,6 +48,7 @@ pub async fn login_to_ref_manager(username: &str) -> Result<(), Box<dyn std::err
     }
 
     response_body = unwrap_response_body_from_response(response).await;
+    // response_body = unwrap_response_body_from_response(response).await;
     state_token = extract_state_handle(&response_body);
 
     body = json!({
@@ -96,6 +98,7 @@ pub async fn login_to_ref_manager(username: &str) -> Result<(), Box<dyn std::err
         .redirect(reqwest::redirect::Policy::none()) // Disable automatic redirects
         .build()
         .unwrap();
+        // .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36");
 
     let res = new_client.get(href)
         .send()
@@ -104,8 +107,8 @@ pub async fn login_to_ref_manager(username: &str) -> Result<(), Box<dyn std::err
     println!("Response: {:?}", res);
 
     if !response_status_is_ok_from_response(&res) {
-        display_response_body_and_crash_from_response(res, "ChurchHTTPError").await;
-        
+        // display_response_body_and_crash_from_response(res, "ChurchHTTPError").await;
+        panic!("ChurchHTTPError");
     }
 
     Ok(())

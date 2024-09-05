@@ -9,7 +9,7 @@ pub mod response_logging;
 
 #[tokio::main]
 async fn main() {
-    chirch_client::login_to_ref_manager("jhdavis4").await; 
+    let _ = chirch_client::login_to_ref_manager("jhdavis4").await; 
 }
 
 
