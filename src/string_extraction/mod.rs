@@ -1,4 +1,4 @@
-fn extract_string_between(response_body: &str, head: &str, tail: &str) -> String {
+pub fn extract_string_between(response_body: &str, head: &str, tail: &str) -> String {
     String::from(
         response_body
         .split(head)
@@ -14,4 +14,8 @@ pub fn extract_success_href(response_body: &str) -> String {
 
 pub fn extract_state_handle(response_body: &str) -> String {
     extract_string_between(response_body, "\"stateHandle\":\"", "\"")
+}
+
+pub fn extract_state_token_from_html(response_body: &str) -> String {
+    extract_string_between(response_body, "\"stateToken\":\"", "\"")
 }

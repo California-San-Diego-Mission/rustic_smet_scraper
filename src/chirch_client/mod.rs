@@ -10,14 +10,13 @@ pub async fn login_to_ref_manager(username: &str) -> Result<(), Box<dyn std::err
     let client = Client::new();
 
     let refferal_manager_url = "https://referralmanager.churchofjesuschrist.org";    
-    let _test_url = "https://id.churchofjesuschrist.org/oauth2/default/v1/authorize?response_type=code&client_id=0oa5b6krts7UNNkID357&redirect_uri=https%3A%2F%2Fwww.churchofjesuschrist.org%2Fservices%2Fplatform%2Fv4%2Flogin&scope=openid+profile&state=https%3A%2F%2Fwww.churchofjesuschrist.org%2Fmy-home%3Flang%3Deng";
 
     let mut response = client
         .get(refferal_manager_url)
         .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36")
         .send()
         .await?;
-
+    println!("Made first request");
     // Send the request and await the response
     let mut response_body = unwrap_response_body_from_response(response).await;
 
@@ -94,13 +93,7 @@ pub async fn login_to_ref_manager(username: &str) -> Result<(), Box<dyn std::err
         .as_str()
         .ok_or("Expected 'href' field in JSON")?;
 
-    let new_client = Client::builder()
-        .redirect(reqwest::redirect::Policy::none()) // Disable automatic redirects
-        .build()
-        .unwrap();
-        // .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36");
-
-    let res = new_client.get(href)
+    let res = client.get(href)
         .send()
         .await?;
 
