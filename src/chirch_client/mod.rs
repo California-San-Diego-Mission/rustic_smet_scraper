@@ -107,6 +107,8 @@ pub async fn login_to_ref_manager(username: &str) -> Result<(), Box<dyn std::err
         .send()
         .await?;
 
+    println!("Request with password sent");
+
     let json_response: serde_json::Value = response.json().await?;
     let href = json_response["success"]["href"]
         .as_str()
