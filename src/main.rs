@@ -4,7 +4,7 @@ pub mod string_extraction;
 pub mod unicode_decoding;
 pub mod response_logging;
 
-
+//meaningless comment for testing commits
 #[tokio::main]
 async fn main() {
     let _ = chirch_client::login_to_ref_manager("jhdavis4").await; 
