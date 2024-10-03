@@ -17,7 +17,11 @@ async fn main() {
     } else {
         println!("Session loaded successfully!");
     }
-
+    if let Err(e) = session.login_to_ref_manager().await {
+        eprintln!("Error logging in to session: {}", e);
+    } else {
+        println!("Login successful!");
+    }
 
 
     // if let Err(e) = session.save(url) {
