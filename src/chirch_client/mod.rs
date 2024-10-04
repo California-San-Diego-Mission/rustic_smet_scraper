@@ -1,4 +1,5 @@
-use reqwest::Client;
+use reqwest::{Client, Url};
+use reqwest::cookie::CookieStore;
 use crate::response_handling::{unwrap_response_body_from_response, response_status_is_ok_from_response};
 use crate::unicode_decoding::decode_unicode_escape;
 use crate::string_extraction::{extract_state_token_from_html};
@@ -10,7 +11,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use reqwest::cookie::{Jar};
 use std::sync::Arc;
-use std::any::type_name;
+// use std::any::type_name;
 use serde_json::json;
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -40,9 +41,8 @@ impl fmt::Display for Session {
         // You can format this in a similar way as the Python f-string
         write!(
             f,
-            "{}:{}\n State: {:?} Client ID: {:?} State Token: {:?}",
+            "{}\n State: {:?} Client ID: {:?} State Token: {:?}",
             self.username,
-            self.password,
             self.state,
             self.client_id,
             self.state_token
@@ -50,9 +50,9 @@ impl fmt::Display for Session {
     }
 }
 
-fn type_of<T>(_: T) -> &'static str {
-    type_name::<T>()
-}
+// fn type_of<T>(_: T) -> &'static str {
+//     type_name::<T>()
+// }
 
 impl Session {
     pub fn new() -> Self {
@@ -103,6 +103,41 @@ impl Session {
         Ok(())
     }
 
+    pub async fn get_nonce(&mut self) -> Result<String, Box<dyn std::error::Error>> {
+        let nonce_url = "https://id.churchofjesuschrist.org/api/v1/internal/device/nonce"; // Adjust this with the actual nonce URL
+        
+        let parsed_url = "https://id.churchofjesuschrist.org".parse::<Url>()?;
+        let cookie_header_value = self.jar.cookies(&parsed_url)
+            .map(|cookies| cookies.to_str().unwrap_or("").to_string())
+            .unwrap_or_else(|| "".to_string());
+
+        let response = self.client//add headers
+            .post(nonce_url)
+            .header("Accept", "*/*")
+            .header("Cookie", cookie_header_value)  // Add cookie header here
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36")
+            .header("Referer", "https://id.churchofjesuschrist.org/auth/services/devicefingerprint")
+            .send()
+            .await?;
+    
+        if !response_status_is_ok_from_response(&response) {
+            panic!("Issue with nonce");
+        } else {
+            println!("Successful nonce request");
+        }
+    
+        let response_body = unwrap_response_body_from_response(response).await;
+        let json_response: serde_json::Value = serde_json::from_str(&response_body)?;
+
+        // Extract the nonce from the response
+        let nonce = json_response["nonce"]
+            .as_str()
+            .ok_or("Expected 'nonce' field in JSON")?;
+    
+        Ok(nonce.to_string())
+    }
+    
+
     pub async fn login_to_ref_manager(&mut self) -> Result<(), Box<dyn std::error::Error>> {    
         let referral_manager_url = "https://referralmanager.churchofjesuschrist.org";    
     
@@ -112,10 +147,10 @@ impl Session {
             .send()
             .await?;
     
-        println!("Status: {}", response.status());
-        if let Some(content_type) = response.headers().get("Content-Type") {
-            println!("Content-Type: {}", content_type.to_str()?);
-        }
+        // println!("Status: {}", response.status());
+        // if let Some(content_type) = response.headers().get("Content-Type") {
+        //     println!("Content-Type: {}", content_type.to_str()?);
+        // }
     
         let mut response_body = unwrap_response_body_from_response(response).await;
         
@@ -131,7 +166,7 @@ impl Session {
     
         response = self.client
             .post("https://id.churchofjesuschrist.org/idp/idx/introspect")
-            .header("Content-Type", "application/json")
+            .header("Content-Type", "application/json;okta-version=1.0.0")
             .header("Accept", "application/json")
             .header("Referer", "https://referralmanager.churchofjesuschrist.org")
             .json(&body)
@@ -144,25 +179,40 @@ impl Session {
         }
     
         response_body = unwrap_response_body_from_response(response).await;
-        let response_body_clone = String::from(response_body.clone());
         let mut json_response: serde_json::Value = serde_json::from_str(&response_body)?;
     
         // Extract the state handle directly from the JSON
         self.state_token = Some(json_response["stateHandle"].to_string());
     
+        let nonce = self.get_nonce().await?;
+        self.nonce = Some(nonce.clone()); // Save the nonce to the session
+
         body = json!({
-            "stateHandle": self.state_token.clone().unwrap(),
-            "identifier": self.username
+            "identifier": self.username,
+            "nonce": nonce,  // Include nonce here
+            "stateHandle": self.state_token.clone().unwrap()
         });
 
-        println!("Unwrapped state token: {}", self.state_token.clone().unwrap());
+        // println!("Unwrapped state token: {}", self.state_token.clone().unwrap());
         //somewhere in here, it breaks. something iswrong in the headers in this request
-    
+        
+        
+        
+        let parsed_url = "https://id.churchofjesuschrist.org".parse::<Url>()?;
+        let cookie_header_value = self.jar.cookies(&parsed_url)
+            .map(|cookies| cookies.to_str().unwrap_or("").to_string())
+            .unwrap_or_else(|| "".to_string());
+
+        println!("Cookie header value: {}", cookie_header_value);
+
+
         response = self.client
             .post("https://id.churchofjesuschrist.org/idp/idx/identify")
-            .header("Content-Type", "application/json")
+            .header("Content-Type", "application/json; okta-version=1.0.0")
             .header("Accept", "application/json")
             .header("Referer", "https://referralmanager.churchofjesuschrist.org")
+            .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36")
+            .header("Cookie", cookie_header_value)  // Add cookie header here
             .json(&body)
             .send()
             .await?;
