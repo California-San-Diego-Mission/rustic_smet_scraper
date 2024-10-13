@@ -13,6 +13,7 @@ use reqwest::cookie::{Jar};
 use std::sync::Arc;
 // use std::any::type_name;
 use serde_json::json;
+use std::slice::range;
 
 #[derive(Deserialize, Serialize, Debug)]
 struct SessionData {
@@ -196,7 +197,23 @@ impl Session {
         // println!("Unwrapped state token: {}", self.state_token.clone().unwrap());
         //somewhere in here, it breaks. something iswrong in the headers in this request
         
-        
+        let constant_identify_cookies = [
+            ("proximity_35e56bd795e416c8c9b87ca2cdfa0003", "eyJ6aXAiOiJERUYiLCJwMnMiOiJ5NGk1NmFGOTRRdnhDc3JRT2tGbldnIiwicDJjIjoxMDAwLCJ2ZXIiOiIxIiwiZW5jIjoiQTI1NkdDTSIsImFsZyI6IlBCRVMyLUhTNTEyK0EyNTZLVyJ9.Dz3XpyNHNPQTzNHh8vJksgmT-j3BdNCTa-RmqcRyqCFZSwbZehHEQg.Ns_3V9jZGzLm5iCn.YKrbc1qOe5zclEy6KcAKbSf2hS6S5rg6m8_Vonn2Pc8YJimSruBX-WZ_tw3RtyaOndCwrx0CXh5cY4kCSWxttXqI_gKTBQ0KGZf6MEatggDB8YuKPUI1quoxKGSuZxXiX2Q4_gET8DWk2CtcvGg4vNKtssU-NYPHDShfZ9weZsHrhg.bpDM-kJXNw57s6YZi9LocQ"),
+            ("PFpreferredHomepage", "COJC"),
+            ("at_check", "true"),
+            ("gpv_Page", "church%20of%20jesus%20christ%20home"),
+            ("gpv_cURL", "www.churchofjesuschrist.org%2F")//Do the same thing for nonce and introspect if appropriate, though I found that v3 did not include an introspect request. Consult this url for answers about how to better insert the constant cookies. They have a good model showing how to insert them into the string with the header value, as all good things should do: https://users.rust-lang.org/t/a-good-way-to-add-cookie-to-a-request-with-reqwest-library/61041/2"www.churchofjesuschrist.org%2F"),
+            ("s_pltp", "church%20of%20jesus%20christ%20home"),
+            ("s_ips", "681"),
+            ("s_tp", "6072"),
+            ("s_ppv", "church%2520of%2520jesus%2520christ%2520home%2C11%2C11%2C11%2C681%2C8%2C1"),
+            ("AMCVS_66C5485451E56AAE0A490D45%40AdobeOrg", "1"),
+            ("s_cc", "true"),
+        ];
+        for i in range(0, std::ops::RangeTo { end: constant_identify_cookies.len() }) {
+            let (cookie, url) = constant_identify_cookies[i];
+            self.jar.add_original((cookie, url));
+        }
         
         let parsed_url = "https://id.churchofjesuschrist.org".parse::<Url>()?;
         let cookie_header_value = self.jar.cookies(&parsed_url)
@@ -208,6 +225,13 @@ impl Session {
 
         response = self.client
             .post("https://id.churchofjesuschrist.org/idp/idx/identify")
+            
+            .header("accept", "application/json; okta-version=1.0.0")
+            .header("accept-encoding", "gzip, deflate, br, zstd")
+            .header("accept-language", "en")
+            .header("connection", "keep-alive")
+            .header("content-length", "3799")
+            .header("content-type", "application/json")
             .header("Content-Type", "application/json; okta-version=1.0.0")
             .header("Accept", "application/json")
             .header("Referer", "https://referralmanager.churchofjesuschrist.org")
