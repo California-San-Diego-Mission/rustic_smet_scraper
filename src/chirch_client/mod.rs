@@ -51,10 +51,6 @@ impl fmt::Display for Session {
     }
 }
 
-// fn type_of<T>(_: T) -> &'static str {
-//     type_name::<T>()
-// }
-
 impl Session {
     pub fn new() -> Self {
         let jar = Arc::new(Jar::default());
@@ -325,65 +321,3 @@ impl Session {
     //     Ok(())
     // }
 }
-
-
-// pub fn build_chirch_client() -> ChurchClient {
-//     dotenv().ok();//load environmental variables
-//     // let client =
-//     //load dotenv file
-//     //open session.json and write in '{}' unless there is a file exists error
-//     let file = OpenOptions::new().write(true).create_new(true).open("session.json");
-//     match file {
-//         Ok(mut file) => {
-//             // If file creation succeeded, write '{}' to the file
-//             file.write_all(b"{}")?;
-//         }
-//         Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => {
-//             // Handle the case where the file already exists
-//             println!("Session exists");
-//         }
-//         Err(e) => {
-//             // Handle any other errors
-//             return Err(e);
-//         }
-//     }
-
-//     //open session.json and load out the session data
-//     //extract nonce, state, client_id, state_token, and bearer
-//     // import cookies, and if they exist, put them into the client
-//     //assign all collected variables into the instance of the struct and return it
-//     ChurchClient {
-//         client: false,
-//         username: std::env::var("CHURCH_USERNAME").expect("CHURCH_USERNAME must be set"),
-//         password: std::env::var("CHURCH_PASSWORD").expect("CHURCH_PASSWORD must be set"),
-//         nonce: "nonce".to_string(),
-//         state: "state".to_string(),
-//         client_id: false,
-//         state_token: "state_token".to_string(),
-//         bearer: false,
-//     }
-// }
-
-
-// pub struct ChurchClient {
-//     client: bool,
-//     pub username: String,
-//     password: String,
-//     nonce: String,
-//     state: String,
-//     client_id: bool,
-//     state_token: String,
-//     bearer: bool,
-// }
-
-
-
-// async fn parse_html(html: &str) {
-//     let document = Html::parse_document(html);
-//     let 
-// }
-
-
-
-
-
