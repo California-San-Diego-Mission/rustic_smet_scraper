@@ -1,3 +1,4 @@
+pub mod session_data;
 use reqwest::{Client, Url};
 use reqwest::cookie::CookieStore;
 use crate::response_handling::{unwrap_response_body_from_response, response_status_is_ok_from_response};
@@ -7,23 +8,10 @@ use dotenv::dotenv;
 use std::fmt;
 use std::fs::File;
 use std::io::Read;
-use std::collections::HashMap;
-use serde::{Deserialize, Serialize};
 use reqwest::cookie::{Jar};
 use std::sync::Arc;
-// use std::any::type_name;
 use serde_json::json;
-use std::slice::range;
-
-#[derive(Deserialize, Serialize, Debug)]
-struct SessionData {
-    nonce: Option<String>,
-    state: Option<String>,
-    client_id: Option<String>,
-    state_token: Option<String>,
-    bearer: Option<String>,
-    cookies: Option<HashMap<String, String>>,
-}
+use crate::session::session_data::SessionData;
 
 pub struct Session {
     pub username: String,
@@ -198,7 +186,7 @@ impl Session {
             ("PFpreferredHomepage", "COJC"),
             ("at_check", "true"),
             ("gpv_Page", "church%20of%20jesus%20christ%20home"),
-            ("gpv_cURL", "www.churchofjesuschrist.org%2F")//Do the same thing for nonce and introspect if appropriate, though I found that v3 did not include an introspect request. Consult this url for answers about how to better insert the constant cookies. They have a good model showing how to insert them into the string with the header value, as all good things should do: https://users.rust-lang.org/t/a-good-way-to-add-cookie-to-a-request-with-reqwest-library/61041/2"www.churchofjesuschrist.org%2F"),
+            ("gpv_cURL", "www.churchofjesuschrist.org%2F"),//Do the same thing for nonce and introspect if appropriate, though I found that v3 did not include an introspect request. Consult this url for answers about how to better insert the constant cookies. They have a good model showing how to insert them into the string with the header value, as all good things should do: https://users.rust-lang.org/t/a-good-way-to-add-cookie-to-a-request-with-reqwest-library/61041/2"www.churchofjesuschrist.org%2F"),
             ("s_pltp", "church%20of%20jesus%20christ%20home"),
             ("s_ips", "681"),
             ("s_tp", "6072"),
@@ -206,8 +194,8 @@ impl Session {
             ("AMCVS_66C5485451E56AAE0A490D45%40AdobeOrg", "1"),
             ("s_cc", "true"),
         ];
-        for i in range(0, std::ops::RangeTo { end: constant_identify_cookies.len() }) {
-            let (cookie, url) = constant_identify_cookies[i];
+        for item in constant_identify_cookies {
+            let (cookie, url) = item;
             self.jar.add_original((cookie, url));
         }
         

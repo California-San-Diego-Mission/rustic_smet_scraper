@@ -1,9 +1,10 @@
-pub mod chirch_client;
+pub mod session;
 pub mod response_handling;
 pub mod string_extraction;
 pub mod unicode_decoding;
 pub mod response_logging;
-use crate::chirch_client::Session;
+pub mod appending_cookies;
+use crate::session::Session;
 
 //meaningless comment for testing commits
 #[tokio::main]
