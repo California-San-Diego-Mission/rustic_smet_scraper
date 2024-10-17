@@ -1,19 +1,17 @@
-pub fn append_cookies(header_string: String, key: &str, value: &str) -> String {
-    // takes ownership of a header string, appends the cookie, and returns ownership of the header string
-    header_string.push_string(key);
-    header_string.push_str("=");
-    //need to figure out a good way to handle adding a ";" to the end of every single cookie except the last one
-    // header_string.push_str()
-    header_string //return ownership
+pub fn append_cookies(mut header_value: String, constant_cookies: Vec<String>) -> String {
+    //adds all cookies in the vector to header_value, then returns ownership
+    //assumes that each cookie is formatted as "cookie=url" with no semicolon at the end
+    let mut idx = 0;
+    for cookie in constant_cookies.iter() {
+        header_value.push_str(&cookie);
+        if idx != constant_cookies.len() - 1 {
+            header_value.push_str("; ");
+        }
+        idx += 1;
+    }
+    header_value
 }
 
-let mut header_value = String::new();
-for (idx, (k, v)) in cookies.iter().enumerate() {
-    // may allocate per .push_str, not the most efficient
-    header_value.push_str(&k);
-    header_value.push_str("=");
-    header_value.push_str(&v.replace(";", "%3B"));
-    if idx != cookies.len() - 1 {
-        header_value.push_str(";");
-    }
-}
+          
+        
+        
