@@ -93,7 +93,7 @@ impl Session {
         let nonce_url = "https://id.churchofjesuschrist.org/api/v1/internal/device/nonce"; // Adjust this with the actual nonce URL
         
         let parsed_url = "https://id.churchofjesuschrist.org".parse::<Url>()?;
-        let mut cookie_header_value = self.jar.cookies(&parsed_url)
+        let mut nonce_cookie_header_value = self.jar.cookies(&parsed_url)
             .map(|cookies| cookies.to_str().unwrap_or("").to_string())
             .unwrap_or_else(|| "".to_string());
         let constant_nonce_cookies: Vec<_> = [
@@ -109,7 +109,7 @@ impl Session {
             "s_ppv=church%2520of%2520jesus%2520christ%2520home%2C11%2C11%2C11%2C681%2C8%2C1"
             ].iter().map(|s| s.to_string()).collect();
         
-        cookie_header_value = appending_cookies::append_cookies(cookie_header_value, constant_nonce_cookies);
+        nonce_cookie_header_value = appending_cookies::append_cookies(nonce_cookie_header_value, constant_nonce_cookies);
 
         let response = self.client//add headers
             .post(nonce_url)
@@ -117,7 +117,7 @@ impl Session {
             .header("Accept-Language", "en-US,en;q=0.9")
             .header("Connection", "keep-alive")
             .header("Content-Length", "0")
-            .header("Cookie", cookie_header_value)  // Add cookie header here
+            .header("Cookie", nonce_cookie_header_value)  // Add cookie header here
             .header("Origin", "https://id.churchofjesuschrist.org")
             .header("Referer", "https://id.churchofjesuschrist.org/auth/services/devicefingerprint")
             .header("Sec-Fetch-Dest", "empty")
@@ -151,56 +151,102 @@ impl Session {
     
 
     pub async fn login_to_ref_manager(&mut self) -> Result<(), Box<dyn std::error::Error>> {    
+        //constants for the function
+        let parsed_url = "https://id.churchofjesuschrist.org".parse::<Url>()?;
+        //initial ref manager request
         let referral_manager_url = "https://referralmanager.churchofjesuschrist.org";    
-    
+        let constant_initial_cookies: Vec<_> = [
+            "PFpreferredHomepage=COJC",
+            "connect.sid=s%3A8DGte01BSPEQUrsudVHQEH2PASY9F2By.GMUaAI%2BVDRt2wiWQ%2FYWRxUxOi12Tqk2l%2BCXRyi7Ve2I",
+            "AMCV_66C5485451E56AAE0A490D45%40AdobeOrg=179643557%7CMCIDTS%7C20012%7CMCMID%7C53094083298243355950451782813184053882%7CMCAAMLH-1725137158%7C9%7CMCAAMB-1729032480%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1728779663s%7CNONE%7CvVersion%7C5.5.0"
+        ].iter().map(|s| s.to_string()).collect();
+        let mut initial_cookie_header_value = self.jar.cookies(&parsed_url)
+            .map(|cookies| cookies.to_str().unwrap_or("").to_string())
+            .unwrap_or_else(|| "".to_string());
+        //add constant cookies
+        initial_cookie_header_value = appending_cookies::append_cookies(initial_cookie_header_value, constant_initial_cookies);
+        //initial request
         let mut response = self.client
             .get(referral_manager_url)
-            //user agent header from Elder Coxson
-            // .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36")
-            //user agent header from Elder Davis
+            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+            .header("Accept-Language", "en-US,en;q=0.9")
+            .header("Connection", "keep-alive")
+            .header("Cookie", initial_cookie_header_value)
+            .header("Sec-Fetch-Dest", "document")
+            .header("Sec-Fetch-Mode", "navigate")
+            .header("Sec-Fetch-Site", "none")
+            .header("Sec-Fetch-User", "?1")
+            .header("Upgrade-Insecure-Requests", "1")
             .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+            .header("sec-ch-ua", "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"")
+            .header("sec-ch-ua-mobile", "?0")
+            .header("sec-ch-ua-platform", "\"Linux\"")
             .send()
             .await?;
-    
-        // println!("Status: {}", response.status());
-        // if let Some(content_type) = response.headers().get("Content-Type") {
-        //     println!("Content-Type: {}", content_type.to_str()?);
-        // }
-    
+        //unwrap data from the request
         let mut response_body = unwrap_response_body_from_response(response).await;
-        
         let encoded_state_token = extract_state_token_from_html(&response_body);
-    
         let encoded_bytes = encoded_state_token.as_bytes();
-    
         self.state_token = Some(decode_unicode_escape(encoded_bytes));
-    
+        //work on introspect request
         let mut body = json!({
             "stateToken": self.state_token
         });
-    
+        let constant_introspect_cookies: Vec<_> = [
+            //add cookies here
+            "PFpreferredHomepage=COJC",
+            "at_check=true",
+            "AMCVS_66C5485451E56AAE0A490D45%40AdobeOrg=1",
+            "s_cc=true",
+            "notice_behavior=implied|us",
+            "gpv_Page=church%20of%20jesus%20christ%20home",
+            "gpv_cURL=www.churchofjesuschrist.org%2F",
+            "s_pltp=church%20of%20jesus%20christ%20home",
+            "s_ppv=church%2520of%2520jesus%2520christ%2520home%2C11%2C11%2C11%2C681%2C8%2C1"
+            // ""
+        ].iter().map(|s| s.to_string()).collect();
+        
+        let mut introspect_cookie_header_value = self.jar.cookies(&parsed_url)
+            .map(|cookies| cookies.to_str().unwrap_or("").to_string())
+            .unwrap_or_else(|| "".to_string());
+        //add constant cookies
+        introspect_cookie_header_value = appending_cookies::append_cookies(introspect_cookie_header_value, constant_introspect_cookies);
+        // println!("Introspect cookies: {}", introspect_cookie_header_value);
+        //introspect request
         response = self.client
             .post("https://id.churchofjesuschrist.org/idp/idx/introspect")
+            .header("Accept", "application/ion+json; okta-version=1.0.0")
+            .header("Accept-Language", "en")
+            .header("Connection", "keep-alive")
+            .header("Content-Type", "application/ion+json; okta-version=1.0.0")
+            .header("Cookie", introspect_cookie_header_value)
+            .header("Origin", "https://id.churchofjesuschrist.org")
+            .header("Sec-Fetch-Dest", "empty")
+            .header("Sec-Fetch-Mode", "cors")
+            .header("Sec-Fetch-Site", "same-origin")
             .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-            .header("Content-Type", "application/json;okta-version=1.0.0")
-            .header("Accept", "application/json")
-            .header("Referer", "https://referralmanager.churchofjesuschrist.org")
+            .header("X-Okta-User-Agent-Extended", "okta-auth-js/7.0.1 okta-signin-widget-7.11.3")
+            .header("sec-ch-ua", "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"")
+            .header("sec-ch-ua-mobile", "?0")
+            .header("sec-ch-ua-platform", "\"Linux\"")
+            .header("sec-ch-ua-platform-version", "\"5.15.0\"")
+            // --data-raw 
+            // .header("Referer", "https://referralmanager.churchofjesuschrist.org")
             .json(&body)
             .send()
             .await?;
         
-        
         if !response_status_is_ok_from_response(&response) {
             panic!("ChurchHTTPError");
         }
-    
+        //unwrap response data
         response_body = unwrap_response_body_from_response(response).await;
-        let mut json_response: serde_json::Value = serde_json::from_str(&response_body)?;
-    
-        // Extract the state handle directly from the JSON
+        let mut json_response: serde_json::Value = serde_json::from_str(&response_body)?;    
         self.state_token = Some(json_response["stateHandle"].to_string());
-    
+        
+        //nonce request
         let nonce = self.get_nonce().await?;
+        println!("Nonce: {}", nonce);
         self.nonce = Some(nonce.clone()); // Save the nonce to the session
 
         body = json!({
@@ -212,47 +258,30 @@ impl Session {
         // println!("Unwrapped state token: {}", self.state_token.clone().unwrap());
         //somewhere in here, it breaks. something iswrong in the headers in this request
         
-        let constant_identify_cookies = [
-            //proximity and PFpreferredHompage separate
-            ("proximity_35e56bd795e416c8c9b87ca2cdfa0003", "eyJ6aXAiOiJERUYiLCJwMnMiOiJ5NGk1NmFGOTRRdnhDc3JRT2tGbldnIiwicDJjIjoxMDAwLCJ2ZXIiOiIxIiwiZW5jIjoiQTI1NkdDTSIsImFsZyI6IlBCRVMyLUhTNTEyK0EyNTZLVyJ9.Dz3XpyNHNPQTzNHh8vJksgmT-j3BdNCTa-RmqcRyqCFZSwbZehHEQg.Ns_3V9jZGzLm5iCn.YKrbc1qOe5zclEy6KcAKbSf2hS6S5rg6m8_Vonn2Pc8YJimSruBX-WZ_tw3RtyaOndCwrx0CXh5cY4kCSWxttXqI_gKTBQ0KGZf6MEatggDB8YuKPUI1quoxKGSuZxXiX2Q4_gET8DWk2CtcvGg4vNKtssU-NYPHDShfZ9weZsHrhg.bpDM-kJXNw57s6YZi9LocQ"),
-            ("PFpreferredHomepage", "COJC"),
-            ("at_check", "true"),
-            ("gpv_Page", "church%20of%20jesus%20christ%20home"),
-            ("gpv_cURL", "www.churchofjesuschrist.org%2F"),//Do the same thing for nonce and introspect if appropriate, though I found that v3 did not include an introspect request. Consult this url for answers about how to better insert the constant cookies. They have a good model showing how to insert them into the string with the header value, as all good things should do: https://users.rust-lang.org/t/a-good-way-to-add-cookie-to-a-request-with-reqwest-library/61041/2"www.churchofjesuschrist.org%2F"),
-            ("s_pltp", "church%20of%20jesus%20christ%20home"),
-            ("s_ips", "681"),
-            ("s_tp", "6072"),
-            ("s_ppv", "church%2520of%2520jesus%2520christ%2520home%2C11%2C11%2C11%2C681%2C8%2C1"),
-            ("AMCVS_66C5485451E56AAE0A490D45%40AdobeOrg", "1"),
-            ("s_cc", "true"),
-        ];
+        let constant_identify_cookies: Vec<_> = [
+            "PFpreferredHomepage=COJC",
+            "at_check=true",
+            "gpv_Page=church%20of%20jesus%20christ%20home",
+            "gpv_cURL=www.churchofjesuschrist.org%2F",//Do the same thing for nonce and introspect if appropriate, though I found that v3 did not include an introspect request. Consult this url for answers about how to better insert the constant cookies. They have a good model showing how to insert them into the string with the header value, as all good things should do: https://users.rust-lang.org/t/a-good-way-to-add-cookie-to-a-request-with-reqwest-library/61041/2"www.churchofjesuschrist.org%2F"),
+            "s_pltp=church%20of%20jesus%20christ%20home",
+            "s_ppv=church%2520of%2520jesus%2520christ%2520home%2C11%2C11%2C11%2C681%2C8%2C1",
+            "AMCVS_66C5485451E56AAE0A490D45%40AdobeOrg=1",
+            "s_cc=true",
+        ].iter().map(|s| s.to_string()).collect();
         
-        let parsed_url = "https://id.churchofjesuschrist.org".parse::<Url>()?;
-        let mut cookie_header_value = self.jar.cookies(&parsed_url)
+        let mut identify_cookie_header_value = self.jar.cookies(&parsed_url)
             .map(|cookies| cookies.to_str().unwrap_or("").to_string())
             .unwrap_or_else(|| "".to_string());
         //add constant cookies
-        let mut idx = 0;
-        for (cookie, url) in constant_identify_cookies.iter() {
-            cookie_header_value.push_str(&cookie);
-            cookie_header_value.push_str("=");
-            cookie_header_value.push_str(&url);
-            if idx != constant_identify_cookies.len() - 1 {
-                cookie_header_value.push_str("; ");
-            }
-            idx += 1;
-        }
-
-        println!("Cookie header value: {}", cookie_header_value);
-
-        //identify requestion
+        identify_cookie_header_value = appending_cookies::append_cookies(identify_cookie_header_value, constant_identify_cookies);
+        //identify request
         response = self.client
             .post("https://id.churchofjesuschrist.org/idp/idx/identify")
             .header("accept", "application/json; okta-version=1.0.0")
             .header("accept-language", "en")
             .header("connection", "keep-alive")
             .header("content-type", "application/json")
-            .header("Cookie", cookie_header_value)  // Add cookie header here
+            .header("Cookie", identify_cookie_header_value)  // Add cookie header here
             .header("Origin", "https://id.churchofjesuschrist.org")
             .header("Sec-Fetch-Dest", "empty")
             .header("Sec-Fetch-Mode", "cors")

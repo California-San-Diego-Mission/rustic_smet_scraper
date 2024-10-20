@@ -6,18 +6,17 @@ pub mod response_logging;
 pub mod appending_cookies;
 use crate::session::Session;
 
-//meaningless comment for testing commits
 #[tokio::main]
 async fn main() {
     let mut session = Session::new();
 
     let url = "https://referralmanager.churchofjesuschrist.org/";
     
-    if let Err(e) = session.load_from_file(url) {
-        eprintln!("Error loading session: {}", e);
-    } else {
-        println!("Session loaded successfully!");
-    }
+    // if let Err(e) = session.load_from_file(url) {
+    //     eprintln!("Error loading session: {}", e);
+    // } else {
+    //     println!("Session loaded successfully!");
+    // }
     if let Err(e) = session.login_to_ref_manager().await {
         eprintln!("Error logging in to session: {}", e);
     } else {
