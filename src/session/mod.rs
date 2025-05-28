@@ -151,43 +151,49 @@ impl Session {
     
 
     pub async fn login_to_ref_manager(&mut self) -> Result<(), Box<dyn std::error::Error>> {    
+        //clear cookies
+        self.jar = Arc::new(Jar::default());
         //constants for the function
         let parsed_url = "https://id.churchofjesuschrist.org".parse::<Url>()?;
         //initial ref manager request
         let referral_manager_url = "https://referralmanager.churchofjesuschrist.org";    
-        let constant_initial_cookies: Vec<_> = [
-            "PFpreferredHomepage=COJC",
-            "connect.sid=s%3A8DGte01BSPEQUrsudVHQEH2PASY9F2By.GMUaAI%2BVDRt2wiWQ%2FYWRxUxOi12Tqk2l%2BCXRyi7Ve2I",
-            "AMCV_66C5485451E56AAE0A490D45%40AdobeOrg=179643557%7CMCIDTS%7C20012%7CMCMID%7C53094083298243355950451782813184053882%7CMCAAMLH-1725137158%7C9%7CMCAAMB-1729032480%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1728779663s%7CNONE%7CvVersion%7C5.5.0"
-        ].iter().map(|s| s.to_string()).collect();
-        let mut initial_cookie_header_value = self.jar.cookies(&parsed_url)
-            .map(|cookies| cookies.to_str().unwrap_or("").to_string())
-            .unwrap_or_else(|| "".to_string());
-        //add constant cookies
-        initial_cookie_header_value = appending_cookies::append_cookies(initial_cookie_header_value, constant_initial_cookies);
-        //initial request
+        // let constant_initial_cookies: Vec<_> = [
+        //     "PFpreferredHomepage=COJC",
+        //     "connect.sid=s%3A8DGte01BSPEQUrsudVHQEH2PASY9F2By.GMUaAI%2BVDRt2wiWQ%2FYWRxUxOi12Tqk2l%2BCXRyi7Ve2I",
+        //     "AMCV_66C5485451E56AAE0A490D45%40AdobeOrg=179643557%7CMCIDTS%7C20012%7CMCMID%7C53094083298243355950451782813184053882%7CMCAAMLH-1725137158%7C9%7CMCAAMB-1729032480%7C6G1ynYcLPuiQxYZrsz_pkqfLG9yMXBpb2zX5dvJdYQJzPXImdj0y%7CMCOPTOUT-1728779663s%7CNONE%7CvVersion%7C5.5.0"
+        // ].iter().map(|s| s.to_string()).collect();
+        // let mut initial_cookie_header_value = self.jar.cookies(&parsed_url)
+        //     .map(|cookies| cookies.to_str().unwrap_or("").to_string())
+        //     .unwrap_or_else(|| "".to_string());
+        // initial_cookie_header_value = appending_cookies::append_cookies(initial_cookie_header_value, constant_initial_cookies);
         let mut response = self.client
             .get(referral_manager_url)
-            .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
-            .header("Accept-Language", "en-US,en;q=0.9")
-            .header("Connection", "keep-alive")
-            .header("Cookie", initial_cookie_header_value)
-            .header("Sec-Fetch-Dest", "document")
-            .header("Sec-Fetch-Mode", "navigate")
-            .header("Sec-Fetch-Site", "none")
-            .header("Sec-Fetch-User", "?1")
-            .header("Upgrade-Insecure-Requests", "1")
+            // .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+            // .header("Accept-Language", "en-US,en;q=0.9")
+            // .header("Connection", "keep-alive")
+            // .header("Cookie", initial_cookie_header_value)
+            // .header("Sec-Fetch-Dest", "document")
+            // .header("Sec-Fetch-Mode", "navigate")
+            // .header("Sec-Fetch-Site", "none")
+            // .header("Sec-Fetch-User", "?1")
+            // .header("Upgrade-Insecure-Requests", "1")
             .header("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-            .header("sec-ch-ua", "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"")
-            .header("sec-ch-ua-mobile", "?0")
-            .header("sec-ch-ua-platform", "\"Linux\"")
+            // .header("sec-ch-ua", "\"Not_A Brand\";v=\"8\", \"Chromium\";v=\"120\", \"Google Chrome\";v=\"120\"")
+            // .header("sec-ch-ua-mobile", "?0")
+            // .header("sec-ch-ua-platform", "\"Linux\"")
             .send()
             .await?;
-        //unwrap data from the request
+        println!("Successful initial request: {}", response_status_is_ok_from_response(&response));
+            //unwrap data from the request
         let mut response_body = unwrap_response_body_from_response(response).await;
+        // println!("{}", response_body);
         let encoded_state_token = extract_state_token_from_html(&response_body);
+        println!("{}\n", encoded_state_token);
         let encoded_bytes = encoded_state_token.as_bytes();
         self.state_token = Some(decode_unicode_escape(encoded_bytes));
+        println!("{}", self.state_token.clone().unwrap());
+        panic!("Break");
+        
         //work on introspect request
         let mut body = json!({
             "stateToken": self.state_token
@@ -205,7 +211,7 @@ impl Session {
             "s_ppv=church%2520of%2520jesus%2520christ%2520home%2C11%2C11%2C11%2C681%2C8%2C1"
             // ""
         ].iter().map(|s| s.to_string()).collect();
-        
+
         let mut introspect_cookie_header_value = self.jar.cookies(&parsed_url)
             .map(|cookies| cookies.to_str().unwrap_or("").to_string())
             .unwrap_or_else(|| "".to_string());

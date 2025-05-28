@@ -10,7 +10,7 @@ use crate::session::Session;
 async fn main() {
     let mut session = Session::new();
 
-    let url = "https://referralmanager.churchofjesuschrist.org/";
+    let _url = "https://referralmanager.churchofjesuschrist.org/";
     
     // if let Err(e) = session.load_from_file(url) {
     //     eprintln!("Error loading session: {}", e);
